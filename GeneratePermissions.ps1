@@ -29,9 +29,15 @@ Param(
 	$Format = "ssdt"
 )
 
+$ErrorActionPreference = "Stop"
+
 #####Add all the SQL goodies (including Invoke-Sqlcmd)#####
 add-pssnapin sqlserverprovidersnapin100 -ErrorAction SilentlyContinue
 add-pssnapin sqlservercmdletsnapin100 -ErrorAction SilentlyContinue
+
+if ($Format -ne "ssdt" -and $Format -ne "ps"){
+	Write-Error "Format must be set to either 'ssdt' or 'ps' but it is set to $format"
+}
 
 $Root = resolve-path .		#returns location of this script - hence enables relative paths
 							#apparently another way to do this is       Split-Path -Path $script:MyInvocation.MyCommand.Path -Parent
@@ -44,8 +50,14 @@ Foreach($DbObj in $DbObjArray)
 	$ProjectName = $DbObj.ProjectName
 	"DB: " + $DbName + "   Project: " + $ProjectName
 	$RootPath = $Root + $ProjectName + "\Scripts\Post-Deploy\SecurityAdditions\"
-	$EnvironmentWrapperFile = $RootPath + "SecurityAdditions$Environment.sql"
-	
+	$EnvironmentWrapperFile = ""
+	if ($Format = "ssdt"){
+		$EnvironmentWrapperFile = $RootPath + "SecurityAdditions$Environment.sql"
+	}
+	if ($Format = "ps"){
+		$EnvironmentWrapperFile = $RootPath + "SecurityAdditions$Environment.ps1"
+	}
+
 	#####CREATE FOLDERS (IF NOT EXIST)#####
 	$UsersFolder = $RootPath + "Users\"
 	If(!(Test-Path -path $UsersFolder)){   
@@ -62,9 +74,23 @@ Foreach($DbObj in $DbObjArray)
 		[void](mkdir $PermissionsFolder)   #Another way of making sure no output makes it to the console.
 		"   Created folder " + $PermissionsFolder
 		}
+	if($Format -like "ps"){
+		"Param(" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		'	$ServerInstance,' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		'	$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		")" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		"" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
+		'$root' + " = Split-Path -Parent " + '$MyInvocation.MyCommand.Path' | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
+		"" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
+	}
 
 	$RoleList = Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SQLInstance -database $DBName -InputFile "$Root\GetDatabaseRoleList.sql"
-	"PRINT 'Create role permissions for " + '$(DeployType)' + "';" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile
+	if ($Format -like "ssdt"){
+		"PRINT 'Create role permissions for " + '$(DeployType)' + "';" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile
+	}	
+	if ($Format -like "ps"){
+		"Write-Output `"Create role permissions for $Environment`"" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+	}	
 	Foreach ($Role in $RoleList)
 	{
 		"   " + $Role.Name
@@ -75,12 +101,22 @@ Foreach($DbObj in $DbObjArray)
 		#Trim all trailing/leading spaces in the generated file
 		(gc $OutPath)| % {$_.trim()} | sc $OutPath
 		
-		":r .\RolePermissions\" + $Role.name + "___$Environment.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		if ($Format -like "ssdt"){
+			":r .\RolePermissions\" + $Role.name + "___$Environment.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		}
+		if ($Format -like "ps"){
+			"Invoke-SqlCmd -InputFile " + '$root' + "\RolePermissions\`"" + $Role.name + "___$Environment.sql`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii		
+			}	
 	}
 
 	$PrincipleList = Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SQLInstance -database $DBName -InputFile "$Root\GetDatabasePrincipalList.sql"
 	"" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
-	"PRINT 'Create users for " + '$(DeployType)' + "';" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append
+	if ($Format -like "ssdt"){
+		"PRINT 'Create users for " + '$(DeployType)' + "';" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append
+	}	
+	if ($Format -like "ps"){
+		"Write-Output `"Create users for $Environment`"" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+	}
 	Foreach ($Principle in $PrincipleList)
 	{
 		"   " + $Principle.Name
@@ -105,11 +141,22 @@ Foreach($DbObj in $DbObjArray)
 		#Trim all trailing/leading spaces in the generated file
 		(gc $OutPath)| % {$_.trim()} | sc $OutPath
 		
-		":r .\Users\$ReplacedPrinciple.user.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		if ($Format -like "ssdt"){
+			":r .\Users\$ReplacedPrinciple.user.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		}
+		if ($Format -like "ps"){
+			"Invoke-SqlCmd -InputFile " + '$root' + "\Users\`"$ReplacedPrinciple.user.sql`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		}		
 	}
 	
 	"" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
-	"PRINT 'Create permissions for " + '$(DeployType)' + "';" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append
+	if ($Format -like "ssdt"){
+		"PRINT 'Create permissions for " + '$(DeployType)' + "';" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append
+	}	
+	if ($Format -like "ps"){
+		"Write-Output `"Create permissions for $Environment`"" | Out-File -width 500 -FilePath $EnvironmentWrapperFile -encoding ascii -append
+	}
+	
 	Foreach ($Principle in $PrincipleList)
 	{
 		$ReplacedPrinciple = $Principle.name.replace('\','_') #Stripping out backslashes so we can use in a filename
@@ -121,16 +168,34 @@ Foreach($DbObj in $DbObjArray)
 		#Trim all trailing/leading spaces in the generated file
 		(gc $OutPath)| % {$_.trim()} | sc $OutPath
 
-		":r .\PermissionSets\" + $ReplacedPrinciple + "___$Environment.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		if ($Format -like "ssdt"){
+			":r .\PermissionSets\" + $ReplacedPrinciple + "___$Environment.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		}
+		if ($Format -like "ps"){
+			"Invoke-SqlCmd -InputFile " + '$root' + "\PermissionSets\`"$ReplacedPrinciple" + "___$Environment.sql`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		}
+		
 	}
 	
-	"" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
-	"PRINT 'Create role memberships for " + '$(DeployType)' + "';" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append
+	# Generating role memberships script
 	$RoleMembershipList = Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SQLInstance -database $DBName -InputFile "$Root\Generate sp_addrolemember statements.sql"
+	$RoleMembershipsScript = $RootPath + "RoleMemberships___$Environment.sql"
 	Foreach ($RoleMembership in $RoleMembershipList)
 	{
-		$RoleMembership.Stmt | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
+		$RoleMembership.Stmt | Out-File -width 500 -encoding ascii -FilePath $RoleMembershipsScript -append #Empty line
 	}
+
+	# Updating Security wrapper to execute role memberships script
+	"" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
+	if ($Format -like "ssdt"){
+		"PRINT 'Create role memberships for " + '$(DeployType)' + "';" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append
+		":r .\RoleMemberships___$Environment.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+	}	
+	if ($Format -like "ps"){
+		"Write-Output `"Create role memberships for $Environment`"" | Out-File -width 500 -FilePath $EnvironmentWrapperFile -encoding ascii -append
+		"Invoke-SqlCmd -InputFile " + '$root' + "\RoleMemberships___$Environment.sql -ServerInstance " + '$ServerInstance' + " -database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+	}	
+
 
 	#Trim all trailing/leading spaces in the generated Environment Wrapper file
 	(gc $EnvironmentWrapperFile)| % {$_.trim()} | sc $EnvironmentWrapperFile
