@@ -88,6 +88,7 @@ Foreach($DBObj in $DBobjArray)
 	$ProjectName = $DBObj.ProjectName
 	"DB: " + $DBName + "   Project: " + $ProjectName
 	$RootPath = $Root + $ProjectName + "\Scripts\Post-Deploy\SecurityAdditions\"
+	$EnvironmentWrapperFile = ""
 	if ($Format = "ssdt"){
 		$EnvironmentWrapperFile = $RootPath + "SecurityAdditions$Environment.sql"
 	}
@@ -111,6 +112,12 @@ Foreach($DBObj in $DBobjArray)
 		[void](mkdir $PermissionsFolder)   #Another way of making sure no output makes it to the console.
 		"   Created folder " + $PermissionsFolder
 		}
+	if($Format -eq "ssdt"){
+		"Param(" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		'	$ServerInstance,' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		'	$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		")" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+	}
 
 	$RoleList = Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SQLInstance -database $DBName -InputFile "$Root\GetDatabaseRoleList.sql"
 	"PRINT 'Create role permissions for " + '$(DeployType)' + "';" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile
@@ -124,10 +131,10 @@ Foreach($DBObj in $DBobjArray)
 		#Trim all trailing/leading spaces in the generated file
 		(gc $OutPath)| % {$_.trim()} | sc $OutPath
 		
-		if ($Format = "ssdt"){
+		if ($Format -like "ssdt"){
 			":r .\RolePermissions\" + $Role.name + "___$Environment.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
-		if ($Format = "ps"){
+		if ($Format -like "ps"){
 			$InputFile = $Root + "RolePermissions\" + $Role.name + "___$Environment.sql"
 			"Invoke-SqlCmd -InputFile `"$InputFile`" -ServerInstance " + '$ServerInstance' + " -database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}	
@@ -160,10 +167,10 @@ Foreach($DBObj in $DBobjArray)
 		#Trim all trailing/leading spaces in the generated file
 		(gc $OutPath)| % {$_.trim()} | sc $OutPath
 		
-		if ($Format = "ssdt"){
+		if ($Format -like "ssdt"){
 			":r .\Users\$ReplacedPrinciple.user.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
-		if ($Format = "ps"){
+		if ($Format -like "ps"){
 			$InputFile = $Root + "Users\$ReplacedPrinciple.user.sql"
 			"Invoke-SqlCmd -InputFile `"$InputFile`" -ServerInstance " + '$ServerInstance' + " -database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
@@ -183,10 +190,10 @@ Foreach($DBObj in $DBobjArray)
 		#Trim all trailing/leading spaces in the generated file
 		(gc $OutPath)| % {$_.trim()} | sc $OutPath
 
-		if ($Format = "ssdt"){
+		if ($Format -like "ssdt"){
 			":r .\PermissionSets\" + $ReplacedPrinciple + "___$Environment.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
-		if ($Format = "ps"){
+		if ($Format -like "ps"){
 			$InputFile = $Root + "PermissionSets\" + $ReplacedPrinciple + "___$Environment.sql"
 			"Invoke-SqlCmd -InputFile `"$InputFile`" -ServerInstance " + '$ServerInstance' + " -database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
