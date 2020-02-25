@@ -22,11 +22,21 @@
 ############################################################################################################
 
 #####PARAMETERS#####
-Param($SQLInstance,$Environment)
+Param(
+	$SQLInstance,
+	$Environment,
+	$Format = "ssdt"
+)
+
+$ErrorActionPreference = "Stop"
 
 #####Add all the SQL goodies (including Invoke-Sqlcmd)#####
 add-pssnapin sqlserverprovidersnapin100 -ErrorAction SilentlyContinue
 add-pssnapin sqlservercmdletsnapin100 -ErrorAction SilentlyContinue
+
+if ($Format -ne "ssdt" -and $Format -ne "ps"){
+	Write-Error "Format must be set to either 'ssdt' or 'ps' but it is set to $format"
+}
 
 #####Prepare array of Databases to work over#####
 ###Add a new element to the array for every database
@@ -78,8 +88,13 @@ Foreach($DBObj in $DBobjArray)
 	$ProjectName = $DBObj.ProjectName
 	"DB: " + $DBName + "   Project: " + $ProjectName
 	$RootPath = $Root + $ProjectName + "\Scripts\Post-Deploy\SecurityAdditions\"
-	$EnvironmentWrapperFile = $RootPath + "SecurityAdditions$Environment.sql"
-	
+	if ($Format = "ssdt"){
+		$EnvironmentWrapperFile = $RootPath + "SecurityAdditions$Environment.sql"
+	}
+	if ($Format = "ps"){
+		$EnvironmentWrapperFile = $RootPath + "SecurityAdditions$Environment.ps1"
+	}
+
 	#####CREATE FOLDERS (IF NOT EXIST)#####
 	$UsersFolder = $RootPath + "Users\"
 	If(!(Test-Path -path $UsersFolder)){   
@@ -109,7 +124,13 @@ Foreach($DBObj in $DBobjArray)
 		#Trim all trailing/leading spaces in the generated file
 		(gc $OutPath)| % {$_.trim()} | sc $OutPath
 		
-		":r .\RolePermissions\" + $Role.name + "___$Environment.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		if ($Format = "ssdt"){
+			":r .\RolePermissions\" + $Role.name + "___$Environment.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		}
+		if ($Format = "ps"){
+			"Invoke-SqlCmd -InputFile $Root\RolePermissions\" + $Role.name + "___$Environment.sql -ServerInstance $SqlInstance -database $DBName" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		}
+		
 	}
 
 	$PrincipleList = Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SQLInstance -database $DBName -InputFile "$Root\GetDatabasePrincipalList.sql"
@@ -139,7 +160,13 @@ Foreach($DBObj in $DBobjArray)
 		#Trim all trailing/leading spaces in the generated file
 		(gc $OutPath)| % {$_.trim()} | sc $OutPath
 		
-		":r .\Users\$ReplacedPrinciple.user.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		if ($Format = "ssdt"){
+			":r .\Users\$ReplacedPrinciple.user.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		}
+		if ($Format = "ps"){
+			"Invoke-SqlCmd -InputFile $Root\Users\$ReplacedPrinciple.user.sql -ServerInstance $SqlInstance -database $DBName" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		}
+		
 	}
 	
 	"" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
@@ -155,7 +182,13 @@ Foreach($DBObj in $DBobjArray)
 		#Trim all trailing/leading spaces in the generated file
 		(gc $OutPath)| % {$_.trim()} | sc $OutPath
 
-		":r .\PermissionSets\" + $ReplacedPrinciple + "___$Environment.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		if ($Format = "ssdt"){
+			":r .\PermissionSets\" + $ReplacedPrinciple + "___$Environment.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		}
+		if ($Format = "ps"){
+			"Invoke-SqlCmd -InputFile $Root\PermissionSets\" + $ReplacedPrinciple + "___$Environment.sql -ServerInstance $SqlInstance -database $DBName" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		}
+		
 	}
 	
 	"" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
