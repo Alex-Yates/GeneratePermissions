@@ -118,6 +118,8 @@ Foreach($DBObj in $DBobjArray)
 		'	$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		")" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		"" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
+		'$root' + " = Split-Path -Parent " + '$MyInvocation.MyCommand.Path' | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
+		"" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
 	}
 
 	$RoleList = Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SQLInstance -database $DBName -InputFile "$Root\GetDatabaseRoleList.sql"
@@ -141,9 +143,8 @@ Foreach($DBObj in $DBobjArray)
 			":r .\RolePermissions\" + $Role.name + "___$Environment.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
 		if ($Format -like "ps"){
-			$InputFile = $Root + "RolePermissions\" + $Role.name + "___$Environment.sql"
-			"Invoke-SqlCmd -InputFile `"$InputFile`" -ServerInstance " + '$ServerInstance' + " -database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
-		}	
+			"Invoke-SqlCmd -InputFile " + '$root' + "\RolePermissions\`"" + $Role.name + "___$Environment.sql`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii		
+			}	
 	}
 
 	$PrincipleList = Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SQLInstance -database $DBName -InputFile "$Root\GetDatabasePrincipalList.sql"
@@ -182,10 +183,8 @@ Foreach($DBObj in $DBobjArray)
 			":r .\Users\$ReplacedPrinciple.user.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
 		if ($Format -like "ps"){
-			$InputFile = $Root + "Users\$ReplacedPrinciple.user.sql"
-			"Invoke-SqlCmd -InputFile `"$InputFile`" -ServerInstance " + '$ServerInstance' + " -database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
-		}
-		
+			"Invoke-SqlCmd -InputFile " + '$root' + "\Users\`"$ReplacedPrinciple.user.sql`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		}		
 	}
 	
 	"" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
@@ -211,8 +210,7 @@ Foreach($DBObj in $DBobjArray)
 			":r .\PermissionSets\" + $ReplacedPrinciple + "___$Environment.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
 		if ($Format -like "ps"){
-			$InputFile = $Root + "PermissionSets\" + $ReplacedPrinciple + "___$Environment.sql"
-			"Invoke-SqlCmd -InputFile `"$InputFile`" -ServerInstance " + '$ServerInstance' + " -database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+			"Invoke-SqlCmd -InputFile " + '$root' + "\PermissionSets\`"$ReplacedPrinciple" + "___$Environment.sql`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
 		
 	}
@@ -233,7 +231,7 @@ Foreach($DBObj in $DBobjArray)
 	}	
 	if ($Format -like "ps"){
 		"Write-Output `"Create role memberships for $Environment`"" | Out-File -width 500 -FilePath $EnvironmentWrapperFile -encoding ascii -append
-		"Invoke-SqlCmd -InputFile `"$RoleMembershipsScript`" -ServerInstance " + '$ServerInstance' + " -database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		"Invoke-SqlCmd -InputFile " + '$root' + "\RoleMemberships___$Environment.sql -ServerInstance " + '$ServerInstance' + " -database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 	}	
 
 
