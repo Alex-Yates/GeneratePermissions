@@ -128,7 +128,7 @@ Foreach($DBObj in $DBobjArray)
 			":r .\RolePermissions\" + $Role.name + "___$Environment.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
 		if ($Format = "ps"){
-			"Invoke-SqlCmd -InputFile " + $RootPath + "RolePermissions\" + $Role.name + "___$Environment.sql -ServerInstance $SqlInstance -database $DBName" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+			"Invoke-SqlCmd -InputFile " + $Root + "RolePermissions\" + $Role.name + "___$Environment.sql -ServerInstance $SqlInstance -database $DBName" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
 		
 	}
@@ -164,7 +164,7 @@ Foreach($DBObj in $DBobjArray)
 			":r .\Users\$ReplacedPrinciple.user.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
 		if ($Format = "ps"){
-			"Invoke-SqlCmd -InputFile " $RootPath + "Users\$ReplacedPrinciple.user.sql -ServerInstance $SqlInstance -database $DBName" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+			"Invoke-SqlCmd -InputFile " $Root + "Users\$ReplacedPrinciple.user.sql -ServerInstance $SqlInstance -database $DBName" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
 		
 	}
@@ -186,7 +186,7 @@ Foreach($DBObj in $DBobjArray)
 			":r .\PermissionSets\" + $ReplacedPrinciple + "___$Environment.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
 		if ($Format = "ps"){
-			"Invoke-SqlCmd -InputFile " + $RootPath + "PermissionSets\" + $ReplacedPrinciple + "___$Environment.sql -ServerInstance $SqlInstance -database $DBName" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+			"Invoke-SqlCmd -InputFile " + $Root + "PermissionSets\" + $ReplacedPrinciple + "___$Environment.sql -ServerInstance $SqlInstance -database $DBName" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
 		
 	}
