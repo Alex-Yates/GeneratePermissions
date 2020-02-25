@@ -1,4 +1,4 @@
-# PowerShell_GeneratePermissions
+# GeneratePermissions
 A framework for managing SQL Server users and roles in source control on a per environment basis.
 
 This is based on the earleir work by Peter Schott. Peter's version was designed only to work with SSDT, but I plan to extend it to work in pure PowerShell, allowing everyone to use it regardless of database tooling.
