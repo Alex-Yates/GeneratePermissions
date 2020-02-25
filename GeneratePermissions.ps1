@@ -22,61 +22,27 @@
 ############################################################################################################
 
 #####PARAMETERS#####
-Param($SQLInstance,$Environment)
+Param(
+	$SQLInstance,
+	$Environment,
+	$DbObjArray,
+	$Format = "ssdt"
+)
 
 #####Add all the SQL goodies (including Invoke-Sqlcmd)#####
 add-pssnapin sqlserverprovidersnapin100 -ErrorAction SilentlyContinue
 add-pssnapin sqlservercmdletsnapin100 -ErrorAction SilentlyContinue
-
-#####Prepare array of Databases to work over#####
-###Add a new element to the array for every database
-###It allows you to define the name of the database and the name of the datadude project
-###that the files will be added to
-$DBobjArray = @()
-$tmpObject = New-Object PSObject
-$tmpObject | Add-Member -MemberType NoteProperty -Name "DatabaseName" -Value "DB1"
-$tmpObject | Add-Member -MemberType NoteProperty -Name "ProjectName" -Value "DB1"
-$DBobjArray += $tmpObject
-
-# $tmpObject2 = New-Object PSObject
-# $tmpObject2 | Add-Member -MemberType NoteProperty -Name "DatabaseName" -Value "DB2"
-# $tmpObject2 | Add-Member -MemberType NoteProperty -Name "ProjectName" -Value "DB2"
-# $DBobjArray += $tmpObject2
-
-# $tmpObject3 = New-Object PSObject
-# $tmpObject3 | Add-Member -MemberType NoteProperty -Name "DatabaseName" -Value "DB3"
-# $tmpObject3 | Add-Member -MemberType NoteProperty -Name "ProjectName" -Value "DB3"
-# $DBobjArray += $tmpObject3
-# $tmpObject4 = New-Object PSObject
-# $tmpObject4 | Add-Member -MemberType NoteProperty -Name "DatabaseName" -Value "DB4"
-# $tmpObject4 | Add-Member -MemberType NoteProperty -Name "ProjectName" -Value "DB4"
-# $DBobjArray += $tmpObject4
-# $tmpObject5 = New-Object PSObject
-# $tmpObject5 | Add-Member -MemberType NoteProperty -Name "DatabaseName" -Value "DB5"
-# $tmpObject5 | Add-Member -MemberType NoteProperty -Name "ProjectName" -Value "DB5"
-# $DBobjArray += $tmpObject5
-# $tmpObject6 = New-Object PSObject
-# $tmpObject6 | Add-Member -MemberType NoteProperty -Name "DatabaseName" -Value "DB6"
-# $tmpObject6 | Add-Member -MemberType NoteProperty -Name "ProjectName" -Value "DB6"
-# $DBobjArray += $tmpObject6
-# $tmpObject7 = New-Object PSObject
-# $tmpObject7 | Add-Member -MemberType NoteProperty -Name "DatabaseName" -Value "DB7"
-# $tmpObject7 | Add-Member -MemberType NoteProperty -Name "ProjectName" -Value "DB7"
-# $DBobjArray += $tmpObject7
-
-
-
 
 $Root = resolve-path .		#returns location of this script - hence enables relative paths
 							#apparently another way to do this is       Split-Path -Path $script:MyInvocation.MyCommand.Path -Parent
 							#See http://powershellcommunity.org/Forums/tabid/54/aff/1/aft/5419/afv/topic/afpg/1/Default.aspx for more on relative paths
 $Root = $Root.Path + "\"
 
-Foreach($DBObj in $DBobjArray)
+Foreach($DbObj in $DbObjArray)
 {
-	$DBName = $DBObj.DatabaseName
-	$ProjectName = $DBObj.ProjectName
-	"DB: " + $DBName + "   Project: " + $ProjectName
+	$DbName = $DbObj.DatabaseName
+	$ProjectName = $DbObj.ProjectName
+	"DB: " + $DbName + "   Project: " + $ProjectName
 	$RootPath = $Root + $ProjectName + "\Scripts\Post-Deploy\SecurityAdditions\"
 	$EnvironmentWrapperFile = $RootPath + "SecurityAdditions$Environment.sql"
 	
