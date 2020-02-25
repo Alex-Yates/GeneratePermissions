@@ -112,7 +112,7 @@ Foreach($DBObj in $DBobjArray)
 		[void](mkdir $PermissionsFolder)   #Another way of making sure no output makes it to the console.
 		"   Created folder " + $PermissionsFolder
 		}
-	if($Format -eq "ssdt"){
+	if($Format -like "ssdt"){
 		"Param(" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		'	$ServerInstance,' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		'	$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
