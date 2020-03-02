@@ -41,10 +41,10 @@ if ($Format -notlike "ssdt" -and $Format -notlike "ps"){
 }
 
 if ($OutputDir -like ""){
-	$OutputDir = resolve-path Split-Path -Path $script:MyInvocation.MyCommand.Path -Parent # The output directory for generated scripts
+	$OutputDir = Split-Path -Path $script:MyInvocation.MyCommand.Path -Parent # The output directory for generated scripts
 }
 
-$Root = resolve-path Split-Path -Path $script:MyInvocation.MyCommand.Path -Parent          # The directory with all the source GeneratePermissions files
+$Root = Split-Path -Path $script:MyInvocation.MyCommand.Path -Parent          # The directory with all the source GeneratePermissions files
 
 Foreach($DbObj in $DbObjArray)
 {
