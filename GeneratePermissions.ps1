@@ -23,9 +23,9 @@
 
 #####PARAMETERS#####
 Param(
-	$SQLInstance,
-	$Environment,
-	$DbObjArray,
+	[Parameter(Mandatory)][ValidateNotNullOrEmpty()]$SQLInstance,
+	[Parameter(Mandatory)][ValidateNotNullOrEmpty()]$Environment,
+	[Parameter(Mandatory)][ValidateNotNullOrEmpty()]$DbObjArray,
 	$OutputDir = "",
 	[ValidateSet('ssdt','ps')]$Format = "ssdt"
 )
