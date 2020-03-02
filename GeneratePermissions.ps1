@@ -27,7 +27,7 @@ Param(
 	$Environment,
 	$DbObjArray,
 	$OutputDir = "",
-	$Format = "ssdt"
+	[ValidateSet('ssdt','ps')]$Format = "ssdt"
 )
 
 $ErrorActionPreference = "Stop"
