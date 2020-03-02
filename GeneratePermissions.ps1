@@ -41,37 +41,40 @@ if ($Format -notlike "ssdt" -and $Format -notlike "ps"){
 }
 
 if ($OutputDir -like ""){
-	$OutputDir = resolve-path Split-Path -Path $script:MyInvocation.MyCommand.Path -Parent
+	$OutputDir = resolve-path Split-Path -Path $script:MyInvocation.MyCommand.Path -Parent # The output directory for generated scripts
 }
 
-$Root = $OutputDir + "\"
+$Root = resolve-path Split-Path -Path $script:MyInvocation.MyCommand.Path -Parent          # The directory with all the source GeneratePermissions files
 
 Foreach($DbObj in $DbObjArray)
 {
 	$DbName = $DbObj.DatabaseName
 	$ProjectName = $DbObj.ProjectName
 	"DB: " + $DbName + "   Project: " + $ProjectName
-	$RootPath = $Root + $ProjectName + "\Scripts\Post-Deploy\SecurityAdditions\"
+	$childFilePath = $ProjectName + "\Scripts\Post-Deploy\Security\"
+	$OutputDirPath = Join-Path -Path $OutputDir -ChildPath $childFilePath
 	$EnvironmentWrapperFile = ""
 	if ($Format = "ssdt"){
-		$EnvironmentWrapperFile = $RootPath + "SecurityAdditions$Environment.sql"
+		$EnvironmentWrapperFile = $OutputDirPath + "\DeploySecurity_$Environment.sql"
+		New-Item -Path $EnvironmentWrapperFile -ItemType File
 	}
 	if ($Format = "ps"){
-		$EnvironmentWrapperFile = $RootPath + "SecurityAdditions$Environment.ps1"
+		$EnvironmentWrapperFile = $OutputDirPath + "\DeploySecurity_$Environment.ps1"
+		New-Item -Path $EnvironmentWrapperFile -ItemType File
 	}
 
 	#####CREATE FOLDERS (IF NOT EXIST)#####
-	$UsersFolder = $RootPath + "Users\"
+	$UsersFolder = Join-Path -Path $OutputDirPath -ChildPath "Users"
 	If(!(Test-Path -path $UsersFolder)){   
 		mkdir $UsersFolder | out-null  #One way of making sure no output makes it to the console.
 		"   Created folder " + $UsersFolder
 		}
-	$RolesFolder = $RootPath + "RolePermissions\"
+	$RolesFolder = Join-Path -Path $OutputDirPath -ChildPath "RolePermissions"
 	If(!(Test-Path -path $RolesFolder)){   
 		mkdir $RolesFolder | out-null  #One way of making sure no output makes it to the console.
 		"   Created folder " + $RolesFolder
 		}
-	$PermissionsFolder = $RootPath + "PermissionSets\"
+	$PermissionsFolder = Join-Path -Path $OutputDirPath -ChildPath "PermissionSets"
 	If(!(Test-Path -path $PermissionsFolder)){
 		[void](mkdir $PermissionsFolder)   #Another way of making sure no output makes it to the console.
 		"   Created folder " + $PermissionsFolder
