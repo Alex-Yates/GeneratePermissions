@@ -116,10 +116,10 @@ Foreach($DbObj in $DbObjArray)
 		(gc $OutPath)| % {$_.trim()} | sc $OutPath
 		
 		if ($Format -like "ssdt"){
-			":r .\RolePermissions\" + $Role.name + "___$Environment.sql" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+			":r .\RolePermissions\$fileName" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
 		if ($Format -like "ps"){
-			"Invoke-SqlCmd -InputFile " + '$root' + "\RolePermissions\`"" + $Role.name + "___$Environment.sql`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii		
+			"Invoke-SqlCmd -InputFile " + '$root' + "\RolePermissions\`"$filename`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii		
 			}	
 	}
 
@@ -185,7 +185,7 @@ Foreach($DbObj in $DbObjArray)
 		(gc $OutPath)| % {$_.trim()} | sc $OutPath
 
 		if ($Format -like "ssdt"){
-			":r .\PermissionSets\" + $fileName | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+			":r .\PermissionSets\$fileName" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
 		if ($Format -like "ps"){
 			"Invoke-SqlCmd -InputFile " + '$root' + "\PermissionSets\`"$fileName`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
