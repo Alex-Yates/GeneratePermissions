@@ -42,18 +42,16 @@ if ($Format -notlike "ssdt" -and $Format -notlike "ps"){
 }
 
 if ($OutputDir -like ""){
-	$OutputDir = Split-Path -Path $script:MyInvocation.MyCommand.Path -Parent # The output directory for generated scripts
+	$OutputDir = Join-Path -Path $PSScriptRoot -ChildPath "output"
 }
-
-$Root = Split-Path -Path $script:MyInvocation.MyCommand.Path -Parent          # The directory with all the source GeneratePermissions files
 
 Foreach($DbObj in $DbObjArray)
 {
 	$DbName = $DbObj.DatabaseName
 	$ProjectName = $DbObj.ProjectName
 	"DB: " + $DbName + "   Project: " + $ProjectName
-	$childFilePath = $ProjectName + "\Scripts\Post-Deploy\Security\"
-	$OutputDirPath = Join-Path -Path $OutputDir -ChildPath $childFilePath
+	$ProjectPath = Join-Path -Path $OutputDir -ChildPath $ProjectName
+	$OutputDirPath = Join-Path -Path $ProjectPath -ChildPath "Scripts\Post-Deploy\Security"
 	If(!(Test-Path -path $OutputDirPath)){   
 		New-Item -Path $OutputDirPath -ItemType Directory | out-null  #One way of making sure no output makes it to the console.
 		"   Created folder " + $OutputDirPath
@@ -96,12 +94,10 @@ Foreach($DbObj in $DbObjArray)
 		'	$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		")" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		"" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
-		'$root' + " = Split-Path -Parent " + '$MyInvocation.MyCommand.Path' | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
-		"" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
 	}
 
 	if($includeRolePermissions){	
-		$RoleList = Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SQLInstance -database $DBName -InputFile "$Root\GetDatabaseRoleList.sql"
+		$RoleList = Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SQLInstance -database $DBName -InputFile "$PSScriptRoot\GetDatabaseRoleList.sql"
 		if ($Format -like "ssdt"){
 			"PRINT 'Create role permissions for " + '$(DeployType)' + "';" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile
 		}	
@@ -114,21 +110,21 @@ Foreach($DbObj in $DbObjArray)
 			$VariableArray = "PrincipleName='" + $Role.Name + "'"
 			$fileName = $Role.name + "___" + $Environment + ".sql"
 			$OutPath = Join-Path -Path $RolesFolder -ChildPath $fileName
-			Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SqlInstance -database $DBName -Variable $VariableArray -InputFile "$Root\CreateDDLForAssigningPermissionsPerPrinciple.sql" | Out-File -width 500 -encoding ascii -FilePath $OutPath #ascii encoding is important if committing to Subversion
-			
+			Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SqlInstance -database $DBName -Variable $VariableArray -InputFile "$PSScriptRoot\CreateDDLForAssigningPermissionsPerPrinciple.sql" | Out-File -width 500 -encoding ascii -FilePath $OutPath #ascii encoding is important if committing to Subversion
+
 			#Trim all trailing/leading spaces in the generated file
 			(gc $OutPath)| % {$_.trim()} | sc $OutPath
-			
+
 			if ($Format -like "ssdt"){
 				":r .\RolePermissions\$fileName" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 			}
 			if ($Format -like "ps"){
-				"Invoke-SqlCmd -InputFile " + '$root' + "\RolePermissions\`"$filename`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii		
+				"Invoke-SqlCmd -InputFile " + '$PSScriptRoot' + "\RolePermissions\`"$filename`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii		
 				}	
 		}
 	}
 
-	$PrincipleList = Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SQLInstance -database $DBName -InputFile "$Root\GetDatabasePrincipalList.sql"
+	$PrincipleList = Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SQLInstance -database $DBName -InputFile "$PSScriptRoot\GetDatabasePrincipalList.sql"
 	"" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
 	if ($Format -like "ssdt"){
 		"PRINT 'Create users for " + '$(DeployType)' + "';" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append
@@ -165,7 +161,7 @@ Foreach($DbObj in $DbObjArray)
 			":r .\Users\$fileName" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
 		if ($Format -like "ps"){
-			"Invoke-SqlCmd -InputFile " + '$root' + "\Users\`"$fileName`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+			"Invoke-SqlCmd -InputFile " + '$PSScriptRoot' + "\Users\`"$fileName`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}		
 	}
 	
@@ -184,7 +180,7 @@ Foreach($DbObj in $DbObjArray)
 		$VariableArray = "PrincipleName='" + $Principle.name + "'"
 		$fileName = $ReplacedPrinciple + "___" + $Environment + ".sql"
 		$OutPath = Join-Path -Path $PermissionsFolder -ChildPath $fileName
-		Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SqlInstance -database $DBName -Variable $VariableArray -InputFile "$Root\CreateDDLForAssigningPermissionsPerPrinciple.sql" | Out-File -width 500 -encoding ascii -FilePath $OutPath #ascii encoding is important if committing to Subversion
+		Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SqlInstance -database $DBName -Variable $VariableArray -InputFile "$PSScriptRoot\CreateDDLForAssigningPermissionsPerPrinciple.sql" | Out-File -width 500 -encoding ascii -FilePath $OutPath #ascii encoding is important if committing to Subversion
 		
 		#Trim all trailing/leading spaces in the generated file
 		(gc $OutPath)| % {$_.trim()} | sc $OutPath
@@ -193,13 +189,13 @@ Foreach($DbObj in $DbObjArray)
 			":r .\PermissionSets\$fileName" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
 		if ($Format -like "ps"){
-			"Invoke-SqlCmd -InputFile " + '$root' + "\PermissionSets\`"$fileName`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+			"Invoke-SqlCmd -InputFile " + '$PSScriptRoot' + "\PermissionSets\`"$fileName`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 		}
 		
 	}
 	
 	# Generating role memberships script
-	$RoleMembershipList = Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SQLInstance -database $DBName -InputFile "$Root\Generate sp_addrolemember statements.sql"
+	$RoleMembershipList = Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SQLInstance -database $DBName -InputFile "$PSScriptRoot\Generate sp_addrolemember statements.sql"
 	$RoleMembershipsScript = Join-Path -Path $OutputDirPath -ChildPath "RoleMemberships___$Environment.sql"
 	Foreach ($RoleMembership in $RoleMembershipList)
 	{
@@ -214,7 +210,7 @@ Foreach($DbObj in $DbObjArray)
 	}	
 	if ($Format -like "ps"){
 		"Write-Output `"Create role memberships for $Environment`"" | Out-File -width 500 -FilePath $EnvironmentWrapperFile -encoding ascii -append
-		"Invoke-SqlCmd -InputFile " + '$root' + "\RoleMemberships___$Environment.sql -ServerInstance " + '$ServerInstance' + " -database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		"Invoke-SqlCmd -InputFile " + '$PSScriptRoot' + "\RoleMemberships___$Environment.sql -ServerInstance " + '$ServerInstance' + " -database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
 	}	
 
 
