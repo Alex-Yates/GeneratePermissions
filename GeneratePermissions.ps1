@@ -27,7 +27,8 @@ Param(
 	[Parameter(Mandatory)][ValidateNotNullOrEmpty()]$Environment,
 	[Parameter(Mandatory)][ValidateNotNullOrEmpty()]$DbObjArray,
 	$OutputDir = "",
-	[ValidateSet('ssdt','ps')]$Format = "ssdt"
+	[ValidateSet('ssdt','ps')]$Format = "ssdt",
+	[switch]$includeRolePermissions = $false
 )
 
 $ErrorActionPreference = "Stop"
@@ -77,11 +78,13 @@ Foreach($DbObj in $DbObjArray)
 		mkdir $UsersFolder | out-null  #One way of making sure no output makes it to the console.
 		"   Created folder " + $UsersFolder
 		}
-	$RolesFolder = Join-Path -Path $OutputDirPath -ChildPath "RolePermissions"
-	If(!(Test-Path -path $RolesFolder)){   
-		mkdir $RolesFolder | out-null  #One way of making sure no output makes it to the console.
-		"   Created folder " + $RolesFolder
+	if($includeRolePermissions){
+		$RolesFolder = Join-Path -Path $OutputDirPath -ChildPath "RolePermissions"
+		If(!(Test-Path -path $RolesFolder)){   
+			mkdir $RolesFolder | out-null  #One way of making sure no output makes it to the console.
+			"   Created folder " + $RolesFolder
 		}
+	}
 	$PermissionsFolder = Join-Path -Path $OutputDirPath -ChildPath "PermissionSets"
 	If(!(Test-Path -path $PermissionsFolder)){
 		[void](mkdir $PermissionsFolder)   #Another way of making sure no output makes it to the console.
@@ -97,30 +100,32 @@ Foreach($DbObj in $DbObjArray)
 		"" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile -append #Empty line
 	}
 
-	$RoleList = Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SQLInstance -database $DBName -InputFile "$Root\GetDatabaseRoleList.sql"
-	if ($Format -like "ssdt"){
-		"PRINT 'Create role permissions for " + '$(DeployType)' + "';" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile
-	}	
-	if ($Format -like "ps"){
-		"Write-Output `"Create role permissions for $Environment`"" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
-	}	
-	Foreach ($Role in $RoleList)
-	{
-		"   " + $Role.Name
-		$VariableArray = "PrincipleName='" + $Role.Name + "'"
-		$fileName = $Role.name + "___" + $Environment + ".sql"
-		$OutPath = Join-Path -Path $RolesFolder -ChildPath $fileName
-		Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SqlInstance -database $DBName -Variable $VariableArray -InputFile "$Root\CreateDDLForAssigningPermissionsPerPrinciple.sql" | Out-File -width 500 -encoding ascii -FilePath $OutPath #ascii encoding is important if committing to Subversion
-		
-		#Trim all trailing/leading spaces in the generated file
-		(gc $OutPath)| % {$_.trim()} | sc $OutPath
-		
+	if($includeRolePermissions){	
+		$RoleList = Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SQLInstance -database $DBName -InputFile "$Root\GetDatabaseRoleList.sql"
 		if ($Format -like "ssdt"){
-			":r .\RolePermissions\$fileName" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
-		}
+			"PRINT 'Create role permissions for " + '$(DeployType)' + "';" | Out-File -width 500 -encoding ascii -FilePath $EnvironmentWrapperFile
+		}	
 		if ($Format -like "ps"){
-			"Invoke-SqlCmd -InputFile " + '$root' + "\RolePermissions\`"$filename`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii		
-			}	
+			"Write-Output `"Create role permissions for $Environment`"" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+		}	
+		Foreach ($Role in $RoleList)
+		{
+			"   " + $Role.Name
+			$VariableArray = "PrincipleName='" + $Role.Name + "'"
+			$fileName = $Role.name + "___" + $Environment + ".sql"
+			$OutPath = Join-Path -Path $RolesFolder -ChildPath $fileName
+			Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SqlInstance -database $DBName -Variable $VariableArray -InputFile "$Root\CreateDDLForAssigningPermissionsPerPrinciple.sql" | Out-File -width 500 -encoding ascii -FilePath $OutPath #ascii encoding is important if committing to Subversion
+			
+			#Trim all trailing/leading spaces in the generated file
+			(gc $OutPath)| % {$_.trim()} | sc $OutPath
+			
+			if ($Format -like "ssdt"){
+				":r .\RolePermissions\$fileName" | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii
+			}
+			if ($Format -like "ps"){
+				"Invoke-SqlCmd -InputFile " + '$root' + "\RolePermissions\`"$filename`" -ServerInstance " + '$ServerInstance' + " -Database " + '$Database' | Out-File -width 500 -append -FilePath $EnvironmentWrapperFile -encoding ascii		
+				}	
+		}
 	}
 
 	$PrincipleList = Invoke-SqlCmd -MaxCharLength 500 -ServerInstance $SQLInstance -database $DBName -InputFile "$Root\GetDatabasePrincipalList.sql"
