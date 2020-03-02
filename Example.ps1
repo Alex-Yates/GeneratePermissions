@@ -3,6 +3,8 @@
     # Would you like to generate scripts for an SSDT project or plain PowerShell
     $Format = "ps" # for SSDT use "ssdt"
 
+    $OutputDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+
     # What SQL Server instance are your databases on?
     $SQLInstance = "SQLSERVER\SQLINSTANCE"
 
@@ -32,4 +34,4 @@
 
 # Executing GeneratePermissions.ps1
 
-    .\GeneratePermissions -SQLInstance $SQLInstance -Environment $Environment -DbObjArray $DbObjArray -Format $Format
+    .\GeneratePermissions -SQLInstance $SQLInstance -Environment $Environment -DbObjArray $DbObjArray -Format $Format -OutputDir $OutputDir

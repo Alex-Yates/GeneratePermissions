@@ -26,6 +26,7 @@ Param(
 	$SQLInstance,
 	$Environment,
 	$DbObjArray,
+	$OutputDir = "",
 	$Format = "ssdt"
 )
 
@@ -35,14 +36,15 @@ $ErrorActionPreference = "Stop"
 add-pssnapin sqlserverprovidersnapin100 -ErrorAction SilentlyContinue
 add-pssnapin sqlservercmdletsnapin100 -ErrorAction SilentlyContinue
 
-if ($Format -ne "ssdt" -and $Format -ne "ps"){
+if ($Format -notlike "ssdt" -and $Format -notlike "ps"){
 	Write-Error "Format must be set to either 'ssdt' or 'ps' but it is set to $format"
 }
 
-$Root = resolve-path .		#returns location of this script - hence enables relative paths
-							#apparently another way to do this is       Split-Path -Path $script:MyInvocation.MyCommand.Path -Parent
-							#See http://powershellcommunity.org/Forums/tabid/54/aff/1/aft/5419/afv/topic/afpg/1/Default.aspx for more on relative paths
-$Root = $Root.Path + "\"
+if ($OutputDir -like ""){
+	$OutputDir = resolve-path Split-Path -Path $script:MyInvocation.MyCommand.Path -Parent
+}
+
+$Root = $OutputDir + "\"
 
 Foreach($DbObj in $DbObjArray)
 {
